@@ -1,0 +1,344 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>FC26 선수 능력치 랜덤 추첨기</title>
+<style>
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    margin: 0;
+    background: #10131a;
+    color: #fff;
+  }
+
+  .wrap {
+    max-width: 760px;
+    margin: auto;
+    padding: 20px 14px 40px;
+  }
+
+  h1 {
+    font-size: 26px;
+    margin: 8px 0;
+  }
+
+  .sub {
+    color: #aeb6c5;
+    margin-bottom: 20px;
+  }
+
+  .toolbar {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    margin-bottom: 18px;
+  }
+
+  button {
+    border: 0;
+    border-radius: 12px;
+    padding: 12px 14px;
+    font-weight: 700;
+    cursor: pointer;
+  }
+
+  .secondary {
+    background: #2b3342;
+    color: #fff;
+  }
+
+  .card {
+    background: #1b2130;
+    border: 1px solid #30394b;
+    border-radius: 16px;
+    padding: 14px;
+    margin: 10px 0;
+  }
+
+  .row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+  }
+
+  .name {
+    font-weight: 700;
+  }
+
+  .code {
+    color: #9da9bc;
+    font-size: 12px;
+    margin-top: 3px;
+  }
+
+  .value {
+    font-size: 25px;
+    font-weight: 800;
+    min-width: 45px;
+    text-align: right;
+  }
+
+  .smallbtn {
+    background: #39465b;
+    color: #fff;
+    padding: 10px 12px;
+  }
+
+  .section {
+    margin-top: 24px;
+    font-size: 18px;
+  }
+
+  .note {
+    color: #aeb6c5;
+    font-size: 13px;
+    line-height: 1.5;
+    margin-top: 18px;
+  }
+</style>
+</head>
+
+<body>
+<div class="wrap">
+
+  <h1>🎰 FC26 선수 능력치 추첨기</h1>
+
+  <div class="sub">
+    모든 능력치 범위: 50~99 · 숫자별 동일 확률
+  </div>
+
+  <div class="toolbar">
+    <button class="secondary" onclick="resetAll()">
+      ↺ 초기화
+    </button>
+
+    <button class="secondary" onclick="showSummary()">
+      📋 결과 요약
+    </button>
+  </div>
+
+  <div id="summary" class="card" style="display:none;">
+    <div class="name">📋 현재 추첨 결과</div>
+
+    <div id="summaryText"
+         style="white-space:pre-wrap; margin-top:10px; line-height:1.7;">
+    </div>
+  </div>
+
+  <div id="app"></div>
+
+  <div class="note">
+    각 버튼을 누르면 해당 능력치가 50~99 사이에서 새로 추첨됩니다.
+    결과는 이 브라우저에 저장됩니다.
+  </div>
+
+</div>
+
+<script>
+
+const groups = [
+
+  ["속도 (PACE)", [
+    ["가속력", "Acceleration"],
+    ["질주 속도", "Sprint Speed"]
+  ]],
+
+  ["슈팅 (SHOOTING)", [
+    ["공격 위치 선정", "Attacking Position"],
+    ["결정력", "Finishing"],
+    ["슈팅 파워", "Shot Power"],
+    ["중거리 슛", "Long Shots"],
+    ["발리 슛", "Volleys"],
+    ["페널티킥", "Penalties"]
+  ]],
+
+  ["패스 (PASSING)", [
+    ["시야", "Vision"],
+    ["크로스", "Crossing"],
+    ["프리킥 정확도", "Free Kick Accuracy"],
+    ["짧은 패스", "Short Passing"],
+    ["긴 패스", "Long Passing"],
+    ["커브", "Curve"]
+  ]],
+
+  ["수비 (DEFENDING)", [
+    ["가로채기", "Interceptions"],
+    ["헤딩 정확도", "Heading Accuracy"],
+    ["수비 인식", "Defensive Awareness"],
+    ["스탠딩 태클", "Standing Tackle"],
+    ["슬라이딩 태클", "Sliding Tackle"]
+  ]],
+
+  ["드리블 (DRIBBLING)", [
+    ["민첩성", "Agility"],
+    ["밸런스", "Balance"],
+    ["반응 속도", "Reactions"],
+    ["볼 컨트롤", "Ball Control"],
+    ["드리블", "Dribbling"],
+    ["침착성", "Composure"]
+  ]],
+
+  ["피지컬 (PHYSICAL)", [
+    ["점프력", "Jumping"],
+    ["체력", "Stamina"],
+    ["몸싸움", "Strength"],
+    ["적극성", "Aggression"]
+  ]],
+
+  ["골키퍼 (GOALKEEPING)", [
+    ["다이빙", "GK Diving"],
+    ["핸들링", "GK Handling"],
+    ["킥", "GK Kicking"],
+    ["위치 선정", "GK Positioning"],
+    ["반사 신경", "GK Reflexes"]
+  ]]
+
+];
+
+const app = document.getElementById("app");
+
+let index = 0;
+
+const ids = [];
+
+const labels = {};
+
+function rand() {
+  return Math.floor(Math.random() * 50) + 50;
+}
+
+for (const [groupName, stats] of groups) {
+
+  const section = document.createElement("div");
+
+  section.innerHTML =
+    `<div class="section">${groupName}</div>`;
+
+  for (const [ko, en] of stats) {
+
+    const id = "stat" + index++;
+
+    ids.push(id);
+
+    labels[id] = ko;
+
+    const card = document.createElement("div");
+
+    card.className = "card";
+
+    card.innerHTML = `
+
+      <div class="row">
+
+        <div>
+
+          <div class="name">${ko}</div>
+
+          <div class="code">${en}</div>
+
+        </div>
+
+        <div class="row">
+
+          <div class="value" id="${id}">—</div>
+
+          <button class="smallbtn"
+                  onclick="rollOne('${id}')">
+
+            🎲 추첨
+
+          </button>
+
+        </div>
+
+      </div>
+
+    `;
+
+    section.appendChild(card);
+
+  }
+
+  app.appendChild(section);
+
+}
+
+function rollOne(id) {
+
+  const value = rand();
+
+  document.getElementById(id).textContent = value;
+
+  localStorage.setItem(id, value);
+
+}
+
+function loadSaved() {
+
+  ids.forEach(id => {
+
+    const saved = localStorage.getItem(id);
+
+    if (saved !== null) {
+
+      document.getElementById(id).textContent = saved;
+
+    }
+
+  });
+
+}
+
+function resetAll() {
+
+  ids.forEach(id => {
+
+    document.getElementById(id).textContent = "—";
+
+    localStorage.removeItem(id);
+
+  });
+
+  document.getElementById("summary").style.display = "none";
+
+}
+
+function showSummary() {
+
+  let text = "";
+
+  let i = 0;
+
+  for (const [groupName, stats] of groups) {
+
+    text += groupName + "\n";
+
+    for (const [ko] of stats) {
+
+      const id = ids[i++];
+
+      text += ko + ": " +
+              document.getElementById(id).textContent +
+              "\n";
+
+    }
+
+    text += "\n";
+
+  }
+
+  document.getElementById("summaryText").textContent =
+    text.trim();
+
+  document.getElementById("summary").style.display = "block";
+
+}
+
+loadSaved();
+
+</script>
+
+</body>
+</html>
